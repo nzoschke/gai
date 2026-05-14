@@ -148,6 +148,31 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		)
 	}
 
+	if req.ToolChoice != nil {
+		switch req.ToolChoice.Mode {
+		case gai.ToolChoiceModeAuto:
+		case gai.ToolChoiceModeAny:
+			config.ToolConfig = &genai.ToolConfig{
+				FunctionCallingConfig: &genai.FunctionCallingConfig{
+					Mode: genai.FunctionCallingConfigModeAny,
+				},
+			}
+		case gai.ToolChoiceModeTool:
+			if req.ToolChoice.Name == "" {
+				panic("ToolChoice.Name required when Mode is ToolChoiceModeTool")
+			}
+			config.ToolConfig = &genai.ToolConfig{
+				FunctionCallingConfig: &genai.FunctionCallingConfig{
+					Mode:                 genai.FunctionCallingConfigModeAny,
+					AllowedFunctionNames: []string{req.ToolChoice.Name},
+				},
+			}
+		default:
+			panic("unsupported tool choice mode: " + string(req.ToolChoice.Mode))
+		}
+		span.SetAttributes(attribute.String("ai.tool_choice", string(req.ToolChoice.Mode)))
+	}
+
 	if req.ResponseSchema != nil {
 		responseSchema, err := schema.ConvertResponseSchema(*req.ResponseSchema)
 		if err != nil {

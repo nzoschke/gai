@@ -46,7 +46,28 @@ type ChatCompleteRequest struct {
 	System              *string
 	Temperature         *Temperature
 	ThinkingLevel       *ThinkingLevel
+	ToolChoice          *ToolChoice
 	Tools               []Tool
+}
+
+// ToolChoiceMode controls how the model selects tools.
+type ToolChoiceMode string
+
+const (
+	// ToolChoiceModeAuto lets the model decide whether to call a tool. Equivalent to a nil [ToolChoice].
+	ToolChoiceModeAuto ToolChoiceMode = "auto"
+	// ToolChoiceModeAny forces the model to call some tool, but lets it choose which.
+	ToolChoiceModeAny ToolChoiceMode = "any"
+	// ToolChoiceModeTool forces the model to call the tool named in [ToolChoice.Name].
+	ToolChoiceModeTool ToolChoiceMode = "tool"
+)
+
+// ToolChoice constrains the model's tool-calling behavior.
+// Nil means auto (model decides). Set Mode to force a specific behavior.
+// When Mode is [ToolChoiceModeTool], Name must be the name of one of the tools in [ChatCompleteRequest.Tools].
+type ToolChoice struct {
+	Mode ToolChoiceMode
+	Name string
 }
 
 type Message struct {

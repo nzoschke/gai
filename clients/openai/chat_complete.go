@@ -300,6 +300,25 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		span.SetAttributes(attribute.String("ai.thinking_level", string(*req.ThinkingLevel)))
 	}
 
+	if req.ToolChoice != nil {
+		switch req.ToolChoice.Mode {
+		case gai.ToolChoiceModeAuto:
+			params.ToolChoice = openai.ChatCompletionToolChoiceOptionUnionParam{OfAuto: openai.String("auto")}
+		case gai.ToolChoiceModeAny:
+			params.ToolChoice = openai.ChatCompletionToolChoiceOptionUnionParam{OfAuto: openai.String("required")}
+		case gai.ToolChoiceModeTool:
+			if req.ToolChoice.Name == "" {
+				panic("ToolChoice.Name required when Mode is ToolChoiceModeTool")
+			}
+			params.ToolChoice = openai.ToolChoiceOptionFunctionToolChoice(openai.ChatCompletionNamedToolChoiceFunctionParam{
+				Name: req.ToolChoice.Name,
+			})
+		default:
+			panic("unsupported tool choice mode: " + string(req.ToolChoice.Mode))
+		}
+		span.SetAttributes(attribute.String("ai.tool_choice", string(req.ToolChoice.Mode)))
+	}
+
 	if req.ResponseSchema != nil {
 		normalized := normalizeToolSchema(req.ResponseSchema)
 		jsonSchemaObject := schemaToJSONObject(normalized)
